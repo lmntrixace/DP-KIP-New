@@ -1,5 +1,4 @@
 # DP-KIP
-
 ## Installation JAX environment
       conda create --name dpkip python=3.9
       conda activate dpkip
@@ -28,7 +27,6 @@ Note: This will install JAX for CPU only. If you want to install JAX for GPU ple
 ### Image data KRR downstream classifier for e-NTK (non-dp)
 
 `python KIP_lenet_ntk.py --disable-dp --batch-size 2000 --epochs 10 --lr 1e-1 --reg 1e-3 --sup_size 10 --dataset 'fashion_mnist'`
-
 
 ### Tabular data
 
