@@ -225,10 +225,6 @@ def get_grad_fun(num_classes):
 
 def main(_):
   print("########################")
-  print(FLAGS.dataset)
-
-
-
   if FLAGS.dataset == 'cifar100':
     num_classes=100
   else:
