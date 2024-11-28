@@ -1,7 +1,7 @@
 import numpy as np
 import os
 import tensorflow_datasets as tfds
-from medmnist import PneumoniaMNIST  # Import the specific MedMNIST dataset
+from medmnist import PneumoniaMNIST 
 
 def class_balanced_sample(sample_size: int, 
                           labels: np.ndarray,

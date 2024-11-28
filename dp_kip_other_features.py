@@ -5,7 +5,6 @@ import gc
 from absl import app
 from absl import flags
 from PIL import Image
-from medmnist import PneumoniaMNIST
 import jax
 from jax import grad
 from jax import jit
