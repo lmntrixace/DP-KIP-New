@@ -1,0 +1,10 @@
+numpy
+matplotlib
+scipy
+absl-py
+jax
+jaxlib
+autodp
+tensorflow-datasets
+kymatio
+flax

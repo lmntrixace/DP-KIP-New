@@ -1,0 +1,14 @@
+Metadata-Version: 2.1
+Name: DPKIP
+Version: 0.0.1
+License-File: LICENSE
+Requires-Dist: numpy
+Requires-Dist: matplotlib
+Requires-Dist: scipy
+Requires-Dist: absl-py
+Requires-Dist: jax
+Requires-Dist: jaxlib
+Requires-Dist: autodp
+Requires-Dist: tensorflow-datasets
+Requires-Dist: kymatio
+Requires-Dist: flax

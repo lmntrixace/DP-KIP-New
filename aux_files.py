@@ -1,45 +1,7 @@
-import  numpy as np
+import numpy as np
 import os
 import tensorflow_datasets as tfds
-
-def get_tfds_dataset(name):
-
-  #Check if data folder exists
-  cur_path = os.path.dirname(os.path.abspath(__file__))
-  save_path=os.path.join(cur_path, 'data')
-  filename=name+".npz"
-
-  if not os.path.exists(save_path):
-    os.makedirs(save_path)
-    print("Data folder does not exist, creating it...")
-
-    ds_train, ds_test = tfds.as_numpy(
-        tfds.load(
-            name,
-            split=['train', 'test'],
-            batch_size=-1,
-            as_dataset_kwargs={'shuffle_files': False}))
-    print("Saving downloaded dataset")
-    np.savez(os.path.join(save_path, filename), train_images=ds_train['image'], test_images=ds_test['image'], train_labels=ds_train['label'], test_labels=ds_test['label'])
-    train_images, train_labels, test_images, test_labels = ds_train['image'], ds_train['label'], ds_test['image'], ds_test['label'] 
-  else:
-    if os.path.isfile(os.path.join(save_path, filename)):
-      print("Loading data...")
-      data = np.load(os.path.join(save_path, filename))
-      train_images, train_labels, test_images, test_labels = data['train_images'], data['train_labels'], data['test_images'], data['test_labels']
-    else:
-      print("Data folder exists but the data does not, downloading data...")
-      ds_train, ds_test = tfds.as_numpy(
-        tfds.load(
-            name,
-            split=['train', 'test'],
-            batch_size=-1,
-            as_dataset_kwargs={'shuffle_files': False}))
-      print("Saving downloaded mnist dataset")
-      np.savez(os.path.join(save_path, filename), train_images=ds_train['image'], test_images=ds_test['image'], train_labels=ds_train['label'], test_labels=ds_test['label'])
-      train_images, train_labels, test_images, test_labels = ds_train['image'], ds_train['label'], ds_test['image'], ds_test['label'] 
-
-  return train_images, train_labels, test_images, test_labels
+from medmnist import PneumoniaMNIST  # Import the specific MedMNIST dataset
 
 def class_balanced_sample(sample_size: int, 
                           labels: np.ndarray,
@@ -97,3 +59,60 @@ def one_hot(x,
   if center:
     one_hot_vectors = one_hot_vectors - 1. / num_classes
   return one_hot_vectors
+
+def get_tfds_dataset(name):
+    """
+    A function to load datasets from TensorFlow Datasets (TFDS) or MedMNIST based on the dataset name.
+    It checks if the dataset is available in TFDS or if it is a MedMNIST dataset like PneumoniaMNIST.
+    """
+    # Define the path for saving datasets
+    cur_path = os.path.dirname(os.path.abspath(__file__))
+    save_path = os.path.join(cur_path, 'data')
+    filename = name + ".npz"
+
+    if not os.path.exists(save_path):
+        os.makedirs(save_path)
+        print("Data folder does not exist, creating it...")
+
+    if name.lower() == "pneumoniamnist":
+        # Handle MedMNIST datasets directly
+        print("Loading PneumoniaMNIST dataset from MedMNIST...")
+        
+        # Load the dataset using MedMNIST
+        train_dataset = PneumoniaMNIST(split="train", download=True)
+        test_dataset = PneumoniaMNIST(split="test", download=True)
+        
+        # Convert to numpy arrays
+        train_images = np.array([img[0] for img in train_dataset])  # images
+        train_labels = np.array([img[1] for img in train_dataset])  # labels
+        test_images = np.array([img[0] for img in test_dataset])    # images
+        test_labels = np.array([img[1] for img in test_dataset])    # labels
+        
+        # Save the dataset in .npz format for future use
+        np.savez(os.path.join(save_path, filename), train_images=train_images, test_images=test_images, train_labels=train_labels, test_labels=test_labels)
+        
+    else:
+        # Handle TFDS datasets (for other datasets like MNIST, etc.)
+        print(f"Loading {name} dataset from TensorFlow Datasets...")
+        
+        ds_train, ds_test = tfds.as_numpy(
+            tfds.load(
+                name,
+                split=['train', 'test'],
+                batch_size=-1,
+                as_dataset_kwargs={'shuffle_files': False}
+            )
+        )
+        
+        # Convert to numpy arrays and save
+        train_images, train_labels = ds_train['image'], ds_train['label']
+        test_images, test_labels = ds_test['image'], ds_test['label']
+        np.savez(os.path.join(save_path, filename), train_images=train_images, test_images=test_images, train_labels=train_labels, test_labels=test_labels)
+
+    # Load the dataset if saved in the .npz file
+    print("Loading data...")
+    data = np.load(os.path.join(save_path, filename))
+    train_images, train_labels = data['train_images'], data['train_labels']
+    test_images, test_labels = data['test_images'], data['test_labels']
+
+    return train_images, train_labels, test_images, test_labels

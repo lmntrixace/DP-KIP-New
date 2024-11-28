@@ -1,0 +1,8 @@
+LICENSE
+README.md
+setup.py
+DPKIP.egg-info/PKG-INFO
+DPKIP.egg-info/SOURCES.txt
+DPKIP.egg-info/dependency_links.txt
+DPKIP.egg-info/requires.txt
+DPKIP.egg-info/top_level.txt
