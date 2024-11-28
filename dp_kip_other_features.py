@@ -240,24 +240,24 @@ def main(_):
     train_images, train_labels, test_images, test_labels = datasets.mnist()
     labels_train = jnp.argmax(train_labels, axis=1)
     y_train=one_hot(labels_train, num_classes)
-  # elif FLAGS.dataset == 'pneumoniamnist':
-  #   # Directly load the PneumoniaMNIST dataset from MedMNIST
-  #   train_dataset = PneumoniaMNIST(split='train', download=True)
-  #   test_dataset = PneumoniaMNIST(split='test', download=True)
+  elif FLAGS.dataset == 'pneumoniamnist':
+    # Directly load the PneumoniaMNIST dataset from MedMNIST
+    train_dataset = PneumoniaMNIST(split='train', download=True)
+    test_dataset = PneumoniaMNIST(split='test', download=True)
     
-  #   # Convert to numpy arrays
-  #   X_TRAIN_RAW = np.array([img[0] for img in train_dataset])  # images
-  #   labels_train = np.array([img[1] for img in train_dataset])  # labels
-  #   X_TEST_RAW = np.array([img[0] for img in test_dataset])    # images
-  #   LABELS_TEST = np.array([img[1] for img in test_dataset])    # labels
+    # Convert to numpy arrays
+    X_TRAIN_RAW = np.array([img[0] for img in train_dataset])  # images
+    labels_train = np.array([img[1] for img in train_dataset])  # labels
+    X_TEST_RAW = np.array([img[0] for img in test_dataset])    # images
+    LABELS_TEST = np.array([img[1] for img in test_dataset])    # labels
     
-  #   # Normalize the data
-  #   channel_means, channel_stds = get_normalization_data(X_TRAIN_RAW)
-  #   train_images, test_images = normalize(X_TRAIN_RAW, channel_means, channel_stds), normalize(X_TEST_RAW, channel_means, channel_stds)
+    # Normalize the data
+    channel_means, channel_stds = get_normalization_data(X_TRAIN_RAW)
+    train_images, test_images = normalize(X_TRAIN_RAW, channel_means, channel_stds), normalize(X_TEST_RAW, channel_means, channel_stds)
     
-  #   # One-hot encode the labels
-  #   y_train = one_hot(labels_train, num_classes)
-  #   test_labels = one_hot(LABELS_TEST, num_classes)
+    # One-hot encode the labels
+    y_train = one_hot(labels_train, num_classes)
+    test_labels = one_hot(LABELS_TEST, num_classes)
   else:
     X_TRAIN_RAW, labels_train, X_TEST_RAW, LABELS_TEST = get_tfds_dataset(FLAGS.dataset)
     channel_means, channel_stds = get_normalization_data(X_TRAIN_RAW)
