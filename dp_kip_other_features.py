@@ -15,6 +15,7 @@ from jax.example_libraries import optimizers
 from jax.example_libraries import stax
 from jax.tree_util import tree_flatten, tree_unflatten
 import jax.numpy as jnp
+from medmnist import PneumoniaMNIST
 
 import numpy as np
 import numpy.random as npr
@@ -223,9 +224,11 @@ def get_grad_fun(num_classes):
   return grad_fun
 
 def main(_):
-  print("########################")
+  print("Process started")
   if FLAGS.dataset == 'cifar100':
     num_classes=100
+  elif FLAGS.dataset == 'pneumoniamnist':
+    num_classes=3
   else:
     num_classes=10
 
@@ -249,11 +252,17 @@ def main(_):
     # Normalize the data
     channel_means, channel_stds = get_normalization_data(X_TRAIN_RAW)
     train_images, test_images = normalize(X_TRAIN_RAW, channel_means, channel_stds), normalize(X_TEST_RAW, channel_means, channel_stds)
-    
+    test_images = test_images[..., np.newaxis]
+    train_images = train_images[..., np.newaxis]
+
+    labels_train = labels_train.flatten()
+    LABELS_TEST = LABELS_TEST.flatten()
+
     # One-hot encode the labels
     y_train = one_hot(labels_train, num_classes)
     test_labels = one_hot(LABELS_TEST, num_classes)
   else:
+
     X_TRAIN_RAW, labels_train, X_TEST_RAW, LABELS_TEST = get_tfds_dataset(FLAGS.dataset)
     channel_means, channel_stds = get_normalization_data(X_TRAIN_RAW)
     print("Shape of labels_train:", labels_train.shape)

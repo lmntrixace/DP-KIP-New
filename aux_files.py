@@ -81,10 +81,11 @@ def get_tfds_dataset(name):
         # Load the dataset using MedMNIST
         train_dataset = PneumoniaMNIST(split="train", download=True)
         test_dataset = PneumoniaMNIST(split="test", download=True)
-        
+        print("helloooooo")
         # Convert to numpy arrays
         train_images = np.array([img[0] for img in train_dataset])  # images
         train_labels = np.array([img[1] for img in train_dataset])  # labels
+        print(train_labels[0:4])
         test_images = np.array([img[0] for img in test_dataset])    # images
         test_labels = np.array([img[1] for img in test_dataset])    # labels
         
