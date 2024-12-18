@@ -50,6 +50,32 @@ class CifarScatterEnc:
       feat_norms = jnp.linalg.norm(x, axis=1, keepdims=True)
       x = x / feat_norms
     return x
+  
+class KagglePneumoniaScatterEnc:
+    def __init__(self, j, norm_features=False):
+        # Configure scattering transform for 256x256 grayscale images
+        scattering, n_channels, out_hw = get_scatter_transform(image_hw=256, image_n_channels=1, j=j)
+        self.scatter = scattering
+        # Group normalization suitable for the scattering output
+        self.groupnorm = get_groupnorm_fun(n_groups=27)  # Adjust n_groups if needed for 256x256
+        self.norm_features = norm_features
+
+    def __call__(self, x):
+        bs = x.shape[0]
+        # Reshape input to (batch_size, 256, 256) for scattering transform
+        x = jnp.reshape(x, (bs, 256, 256))
+        # Apply the scattering transform
+        x = self.scatter(x)
+        # Apply group normalization
+        x = self.groupnorm(x)
+        # Flatten the output
+        x = jnp.reshape(x, (bs, -1))
+        # Normalize features if specified
+        if self.norm_features:
+            feat_norms = jnp.linalg.norm(x, axis=1, keepdims=True)
+            x = x / feat_norms
+        return x
+
 
 #def scatter_sanity_check():
 #  import kymatio.torch as kymatio_torch

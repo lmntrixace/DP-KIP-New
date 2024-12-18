@@ -2,6 +2,8 @@ import itertools
 import time
 import os
 import gc
+import random as py_random
+from PIL import Image    
 from absl import app
 from absl import flags
 from PIL import Image
@@ -25,7 +27,7 @@ from autodp.mechanism_zoo import SubsampleGaussianMechanism
 
 import examples as datasets
 from aux_files import class_balanced_sample, one_hot, get_tfds_dataset, get_normalization_data, normalize
-from utils.wavelet_features import MnistScatterEnc, CifarScatterEnc
+from utils.wavelet_features import MnistScatterEnc, CifarScatterEnc, KagglePneumoniaScatterEnc
 from encoder_pretraining.resnet import ResNetEnc
 
 
@@ -186,6 +188,9 @@ def shape_as_image(images, labels, dataset, dummy_dim=False):
     images_reshaped = jnp.reshape(images, target_shape)
   elif dataset=='cifar10' or dataset=='svhn_cropped' or dataset=='cifar100':
     target_shape = (-1, 1, 32, 32, 3) if dummy_dim else (-1, 32, 32, 3)
+    images_reshaped = jnp.reshape(images, target_shape)
+  elif dataset == 'kagglepneumonia':
+    target_shape = (-1, 1, 256, 256, 1) if dummy_dim else (-1, 256, 256, 1)
     images_reshaped = jnp.reshape(images, target_shape) 
   return images_reshaped, labels
 
@@ -196,6 +201,9 @@ def shape_as_image_only_imgs(images, labels, dataset, dummy_dim=False):
   elif dataset=='cifar10' or dataset=='svhn_cropped' or dataset=='cifar100':
     target_shape = (-1, 1, 32, 32, 3) if dummy_dim else (-1, 32, 32, 3)
     images_reshaped = jnp.reshape(images, target_shape) 
+  elif dataset == 'kagglepneumonia':
+    target_shape = (-1, 1, 256, 256, 1) if dummy_dim else (-1, 256, 256, 1)
+    images_reshaped = jnp.reshape(images, target_shape) 
   return images_reshaped
 
 def get_grad_fun(num_classes):
@@ -203,6 +211,8 @@ def get_grad_fun(num_classes):
   if FLAGS.feature_type == 'wavelet':
     if (FLAGS.dataset == 'mnist') or (FLAGS.dataset == 'pneumoniamnist'):
       scatter_net = MnistScatterEnc(j=FLAGS.scatter_j, norm_features=FLAGS.normalize_features)
+    elif (FLAGS.dataset == 'kagglepneumonia'):
+      scatter_net = KagglePneumoniaScatterEnc(j=FLAGS.scatter_j, norm_features=FLAGS.normalize_features)
     else:
       scatter_net = CifarScatterEnc(j=FLAGS.scatter_j, norm_features=FLAGS.normalize_features)
 
@@ -261,8 +271,50 @@ def main(_):
     # One-hot encode the labels
     y_train = one_hot(labels_train, num_classes)
     test_labels = one_hot(LABELS_TEST, num_classes)
-  else:
+  elif FLAGS.dataset == "kagglepneumonia":
+    # Set paths for train and test folders
+    train_path = os.path.join("Data", "train")
+    test_path = os.path.join("Data", "test")
 
+    # Helper function to load images and labels from folders
+    def load_images_from_folder(folder_path, num_images):
+        images = []
+        labels = []
+        classes = {"normal": 0, "pneumonia": 1}
+        for class_name, label in classes.items():
+            class_folder = os.path.join(folder_path, class_name)
+            # Get a limited number of images
+            image_files = py_random.sample(os.listdir(class_folder), num_images)
+            for image_file in image_files:
+                img_path = os.path.join(class_folder, image_file)
+                img = Image.open(img_path).convert("L")  # Convert to grayscale
+                img = img.resize((256, 256))  # Ensure 256x256 resolution
+                images.append(np.array(img))
+                labels.append(label)
+        return np.array(images), np.array(labels)
+
+    # Load 100 images for training and 20 for testing
+    X_TRAIN_RAW, labels_train = load_images_from_folder(train_path, num_images=100)
+    X_TEST_RAW, LABELS_TEST = load_images_from_folder(test_path, num_images=20)
+
+    # Normalize the data
+    channel_means, channel_stds = get_normalization_data(X_TRAIN_RAW)
+    print("#1")
+    train_images = normalize(X_TRAIN_RAW, channel_means, channel_stds)
+    test_images = normalize(X_TEST_RAW, channel_means, channel_stds)
+
+    # Add an extra dimension for channels (grayscale images)
+    train_images = train_images[..., np.newaxis]
+    test_images = test_images[..., np.newaxis]
+
+    print("#2")
+
+    # One-hot encode the labels
+    y_train = one_hot(labels_train, num_classes=2)
+    test_labels = one_hot(LABELS_TEST, num_classes=2)
+    print("#3")
+    
+  else:
     X_TRAIN_RAW, labels_train, X_TEST_RAW, LABELS_TEST = get_tfds_dataset(FLAGS.dataset)
     channel_means, channel_stds = get_normalization_data(X_TRAIN_RAW)
     print("Shape of labels_train:", labels_train.shape)
@@ -276,19 +328,25 @@ def main(_):
 
   num_train = train_images.shape[0]
   num_complete_batches, leftover = divmod(num_train, FLAGS.batch_size)
+  print("#4")
   num_batches = num_complete_batches + bool(leftover)
   key = random.PRNGKey(FLAGS.seed)
+  print("5")
 
   if FLAGS.dpsgd:
+    print("5.1")
     # code from: https://github.com/yuxiangw/autodp/blob/master/tutorials/tutorial_calibrator.ipynb
     dp_params = {}
     general_calibrate = generalized_eps_delta_calibrator()
+    print("5.2")
     dp_params['sigma'] = None
-    dp_params['coeff'] = FLAGS.epochs * num_train / FLAGS.batch_size
+    dp_params['coeff'] = FLAGS.epochs * num_train / FLAGS.batch_size # focus on this while deciding batcg_size
     dp_params['prob'] = FLAGS.batch_size / num_train
     general_calibrate(SubsampleGaussianMechanism, FLAGS.epsilon, FLAGS.delta, [0, 1000],
                       params=dp_params, para_name='sigma', name='Subsampled_Gaussian')
+    print("5.3")
     print("SIGMA WITH AUTODP: ", dp_params['sigma'])
+  print("5.5")
 
   def data_stream():
     rng = npr.RandomState(FLAGS.seed)
@@ -300,6 +358,7 @@ def main(_):
 
   batches = data_stream()
   opt_init, opt_update, get_params = optimizers.adam(FLAGS.learning_rate)
+  print("#6")
 
   @jit
   def update(_, i_, opt_state_, batch, y_support):
@@ -354,6 +413,8 @@ def main(_):
     if FLAGS.feature_type == 'wavelet':
       if (FLAGS.dataset == 'mnist') or (FLAGS.dataset == 'pneumoniamnist'):
         feature_extractor = MnistScatterEnc(j=FLAGS.scatter_j, norm_features=FLAGS.normalize_features)
+      elif (FLAGS.dataset == 'kagglepneumonia'):
+        feature_extractor = KagglePneumoniaScatterEnc(j=FLAGS.scatter_j, norm_features=FLAGS.normalize_features)
       else:
         feature_extractor = CifarScatterEnc(j=FLAGS.scatter_j, norm_features=FLAGS.normalize_features)
     elif FLAGS.feature_type == 'resnet':

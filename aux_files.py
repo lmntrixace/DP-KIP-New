@@ -72,26 +72,7 @@ def get_tfds_dataset(name):
 
     if not os.path.exists(save_path):
         os.makedirs(save_path)
-        print("Data folder does not exist, creating it...")
-
-    if name.lower() == "pneumoniamnist":
-        # Handle MedMNIST datasets directly
-        print("Loading PneumoniaMNIST dataset from MedMNIST...")
-        
-        # Load the dataset using MedMNIST
-        train_dataset = PneumoniaMNIST(split="train", download=True)
-        test_dataset = PneumoniaMNIST(split="test", download=True)
-        print("helloooooo")
-        # Convert to numpy arrays
-        train_images = np.array([img[0] for img in train_dataset])  # images
-        train_labels = np.array([img[1] for img in train_dataset])  # labels
-        print(train_labels[0:4])
-        test_images = np.array([img[0] for img in test_dataset])    # images
-        test_labels = np.array([img[1] for img in test_dataset])    # labels
-        
-        # Save the dataset in .npz format for future use
-        np.savez(os.path.join(save_path, filename), train_images=train_images, test_images=test_images, train_labels=train_labels, test_labels=test_labels)
-        
+        print("Data folder does not exist, creating it...")        
     else:
         # Handle TFDS datasets (for other datasets like MNIST, etc.)
         print(f"Loading {name} dataset from TensorFlow Datasets...")
